@@ -3,3 +3,4 @@ requests==2.27.1
 urllib3==1.26.8
 lxml==4.7.1
 mysqlclient==2.1.0
+requests-html==0.10.0
