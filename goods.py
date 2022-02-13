@@ -11,6 +11,7 @@ try:
     import re
     import test
     import MySQLdb
+    import requests-html
     from fake_useragent import UserAgent
     from urllib.request import urlopen
     import requests
@@ -18,7 +19,7 @@ try:
 except ModuleNotFoundError:
     Promote = input("錯誤: 尚未安所需的套件! 是否自動安裝所需套件(Y/n)? : ")
     if Promote == "Y":
-        command = 'pip install BeautifulSoup4 requests urllib3 lxml mysqlclient'
+        command = 'pip install BeautifulSoup4 requests urllib3 lxml mysqlclient requests-html'
         os.system(command)
         basename = os.path.basename(__file__)
         os.system('python ' + basename)  # 執行此命令
