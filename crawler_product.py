@@ -53,9 +53,7 @@ def disconnection():
     db.close()
 
 
-    # return await asession.get(pre + url)
-
-
+    
 # 爬蟲獲取商品名稱、價格、熱銷、縮網址
 def goods_info():
     global content, text, list, link
@@ -67,10 +65,8 @@ def goods_info():
                              "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.93 Safari/537.36"}
     # user_agent = UserAgent()
     asession = req.AsyncHTMLSession()
-
     # response = requests.get(url, headers={'user-agent': user_agent.random})
     response = requests.get(url, headers=headers)
-
     soup = BeautifulSoup(response.text, "lxml")  # Parser選用lxml，較為快速(?!)
     # 撈資料
     t1 = time.time()
@@ -112,16 +108,7 @@ async def pop_goods(url):
     return i, j, k
 
 
-    # e3 = r.html.find("#cq_recomm_slot-89984c043f9f6c5dfe5899d4eb > div > div > div > div:nth-child(9) > div.photo > a")
-    # e2 = r.html.find("#cq_recomm_slot-89984c043f9f6c5dfe5899d4eb > div > div > div > div:nth-child(6) > div.photo > a")
-    # e1 = r.html.find("#cq_recomm_slot-89984c043f9f6c5dfe5899d4eb > div > div > div > div:nth-child(3) > div.photo > a")
-    #
-    # for r1, r2, r3 in zip(e1, e2, e3):
-    #     i = '第 ' + r1.attrs['data-position'] + ' 名 ' + r1.attrs['data-name'] + ' ' + r1.attrs['data-price'] + ' 元 '
-    #     j = '第 ' + r2.attrs['data-position'] + ' 名 ' + r2.attrs['data-name'] + ' ' + r2.attrs['data-price'] + ' 元 '
-    #     k = '第 ' + r3.attrs['data-position'] + ' 名 ' + r3.attrs['data-name'] + ' ' + r3.attrs['data-price'] + ' 元 '
-    # return r, i, j, k
-
+  
 
 # 爬取線上購物網的商品與db產生相關聯
 def crawler(n_area):
@@ -150,32 +137,8 @@ def find_db():
     elif len(list)==0:
         print("商品不存在!")
 
-    # def pop_goods():
-    #     next = input("是否查看前五名人氣熱銷商品(Y/n)? : ")
-    rcontent = ''
-    if next=="Y":
-        # response_hot = requests.get(list[0])
-        # soup_hot = BeautifulSoup(response_hot.text, "lxml")
-        # k = soup_hot.find_all('a', class_='gtm-product-alink-hotsale')
-        # for t in k:
-        #     rank = t.get('data-position')
-        #     rname = t.get('data-name')
-        #     rcontent += f"\n{rank}\n{rname}\n"
-        # print(rcontent)
-        print('OK')
-        # pop = [list[2] for test.find in a]
-        # print(pop)
-        # test.find(list[0])
-        # test.find(list[1])
-        # test.find(list[2])
 
-
-    # print("以下是 {} 前五名人氣熱銷商品: ".format(text))
-
-
-    # 縮網址
-
-
+# 縮網址
 def shorten(long_url, alias):
     URL = "http://tinyurl.com/create.php?source=indexpage&url=" + long_url + "&submit=Make+TinyURL%21&alias=" + alias
     response = urlopen(URL)
@@ -185,14 +148,14 @@ def shorten(long_url, alias):
 
 if __name__=="__main__":
     # noinspection PyBroadException
-    # try:
+    try:
     while 1==1:
         connection()
         goods_info()
         find_db()
 
-# except Exception as e:
-#     disconnection()
-#     print(e)
+    except Exception as e:
+        disconnection()
+        print(e)
 
-# os.system('python test.py')
+
