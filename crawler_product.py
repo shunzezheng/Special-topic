@@ -1,5 +1,5 @@
 # '''
-# 目前版本 v1.4.0
+# 目前版本 v1.3.0
 # 撰寫成員:余若榛、鄭舜澤
 # '''
 
@@ -23,7 +23,7 @@ try:
 except ModuleNotFoundError:
     Promote = input("錯誤: 尚未安所需的套件! 是否自動安裝所需套件(Y/n)? : ")
     if Promote=="Y":
-        command = 'pip install -r requirment.txt'
+        command = 'pip install -r requirements.txt'
         os.system(command)
         basename = os.path.basename(__file__)
         os.system('python ' + basename)  # 執行此命令
@@ -61,6 +61,7 @@ def ASR():
     # 語音讀取
     with sr.Microphone() as source:
         # create the ambient noise energy level
+
         r.adjust_for_ambient_noise(source, duration=0)
         audio = r.listen(source)  # 檢測到靜音停止
 
@@ -69,6 +70,7 @@ def ASR():
         text = r.recognize_google(audio, language="zh-TW")
     except sr.UnknownValueError:
         print("Google Speech Recognition could not understand audio")
+        text = input("請輸入欲查詢商品的關鍵字: ")
     except sr.RequestError as e:
         print("No response from Google Speech Recognition service: {0}".format(e))
     return text
@@ -78,21 +80,27 @@ def ASR():
 def goods_info():
     global content, text, list, results
     # text = input("請輸入欲查詢商品的關鍵字: ")
-    print("請輸入欲查詢商品的關鍵字(語音輸入):", end='')
-    print(ASR())
-    print("搜尋中，請稍後!")
+    try:
+        print("請輸入欲查詢商品的關鍵字(語音輸入):", end='')
+        url = 'https://online.carrefour.com.tw/zh/search?q=' + str(ASR())
+    except:
+        text = input("請輸入欲查詢商品的關鍵字: ")
+        url = 'https://online.carrefour.com.tw/zh/search?q=' + str(text)
+
+    # url = 'https://online.carrefour.com.tw/zh/search?q=' + str(text)
     content = ""
     list = []
-    url = 'https://online.carrefour.com.tw/zh/search?q=' + str(text)
+    user_agent = UserAgent()
+    asession = req.AsyncHTMLSession()
+    # str(stext=ASR()) if None else str(wtext)
     # headers = {"user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
     #                          "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.93 Safari/537.36"}
     # response = requests.get(url, headers=headers)
-    user_agent = UserAgent()
-    asession = req.AsyncHTMLSession()
+    print("搜尋中，請稍後!")
+    t1 = time.time()
     response = requests.get(url, headers={'user-agent': user_agent.random})
     soup = BeautifulSoup(response.text, "lxml")  # Parser選用lxml，較為快速(?!)
     # 撈資料
-    t1 = time.time()
     extract = soup.find_all('a', class_='gtm-product-alink', limit=3)
     ele = [s.get('href') for s in extract]
     try:
