@@ -4,3 +4,4 @@ urllib3==1.26.8
 lxml==4.7.1
 mysqlclient==2.1.0
 requests-html==0.10.0
+./PyAudio-0.2.11-cp39-cp39-win_amd64.whl
