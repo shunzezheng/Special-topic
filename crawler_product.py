@@ -1,6 +1,6 @@
 # '''
-# 目前版本 v1.3.0
-# 撰寫者:shunzezheng
+# 目前版本 v1.4.0
+# 撰寫成員:余若榛、鄭舜澤
 # '''
 
 # 若無安裝套件則選是否要自動安裝
@@ -13,6 +13,7 @@ try:
     import re
     import MySQLdb
     import requests_html as req
+    import speech_recognition as sr
     from fake_useragent import UserAgent
     from urllib.request import urlopen
     from requests.exceptions import MissingSchema, InvalidURL
@@ -22,7 +23,7 @@ try:
 except ModuleNotFoundError:
     Promote = input("錯誤: 尚未安所需的套件! 是否自動安裝所需套件(Y/n)? : ")
     if Promote=="Y":
-        command = 'pip install BeautifulSoup4 requests urllib3 lxml mysqlclient requests-html'
+        command = 'pip install -r requirment.txt'
         os.system(command)
         basename = os.path.basename(__file__)
         os.system('python ' + basename)  # 執行此命令
@@ -53,20 +54,42 @@ def disconnection():
     db.close()
 
 
-    
+def ASR():
+    # obtain audio from the microphone
+    global text
+    r = sr.Recognizer()
+    # 語音讀取
+    with sr.Microphone() as source:
+        # create the ambient noise energy level
+        r.adjust_for_ambient_noise(source, duration=0)
+        audio = r.listen(source)  # 檢測到靜音停止
+
+    # recognize speech using Google Speech Recognition
+    try:
+        text = r.recognize_google(audio, language="zh-TW")
+    except sr.UnknownValueError:
+        print("Google Speech Recognition could not understand audio")
+    except sr.RequestError as e:
+        print("No response from Google Speech Recognition service: {0}".format(e))
+    return text
+
+
 # 爬蟲獲取商品名稱、價格、熱銷、縮網址
 def goods_info():
-    global content, text, list, link
-    text = input("請輸入欲查詢商品的關鍵字: ")
+    global content, text, list, results
+    # text = input("請輸入欲查詢商品的關鍵字: ")
+    print("請輸入欲查詢商品的關鍵字(語音輸入):", end='')
+    print(ASR())
+    print("搜尋中，請稍後!")
     content = ""
     list = []
     url = 'https://online.carrefour.com.tw/zh/search?q=' + str(text)
-    headers = {"user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                             "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.93 Safari/537.36"}
-    # user_agent = UserAgent()
+    # headers = {"user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+    #                          "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.93 Safari/537.36"}
+    # response = requests.get(url, headers=headers)
+    user_agent = UserAgent()
     asession = req.AsyncHTMLSession()
-    # response = requests.get(url, headers={'user-agent': user_agent.random})
-    response = requests.get(url, headers=headers)
+    response = requests.get(url, headers={'user-agent': user_agent.random})
     soup = BeautifulSoup(response.text, "lxml")  # Parser選用lxml，較為快速(?!)
     # 撈資料
     t1 = time.time()
@@ -108,8 +131,6 @@ async def pop_goods(url):
     return i, j, k
 
 
-  
-
 # 爬取線上購物網的商品與db產生相關聯
 def crawler(n_area):
     category = [record[0] for record in results]
@@ -137,8 +158,32 @@ def find_db():
     elif len(list)==0:
         print("商品不存在!")
 
+    # def pop_goods():
+    #     next = input("是否查看前五名人氣熱銷商品(Y/n)? : ")
+    rcontent = ''
+    if next=="Y":
+        # response_hot = requests.get(list[0])
+        # soup_hot = BeautifulSoup(response_hot.text, "lxml")
+        # k = soup_hot.find_all('a', class_='gtm-product-alink-hotsale')
+        # for t in k:
+        #     rank = t.get('data-position')
+        #     rname = t.get('data-name')
+        #     rcontent += f"\n{rank}\n{rname}\n"
+        # print(rcontent)
+        print('OK')
+        # pop = [list[2] for test.find in a]
+        # print(pop)
+        # test.find(list[0])
+        # test.find(list[1])
+        # test.find(list[2])
 
-# 縮網址
+
+    # print("以下是 {} 前五名人氣熱銷商品: ".format(text))
+
+
+    # 縮網址
+
+
 def shorten(long_url, alias):
     URL = "http://tinyurl.com/create.php?source=indexpage&url=" + long_url + "&submit=Make+TinyURL%21&alias=" + alias
     response = urlopen(URL)
@@ -148,14 +193,14 @@ def shorten(long_url, alias):
 
 if __name__=="__main__":
     # noinspection PyBroadException
-    try:
+    # try:
     while 1==1:
         connection()
         goods_info()
         find_db()
 
-    except Exception as e:
-        disconnection()
-        print(e)
+# except Exception as e:
+#     disconnection()
+#     print(e)
 
-
+# os.system('python test.py')
