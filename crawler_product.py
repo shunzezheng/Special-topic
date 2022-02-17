@@ -1,19 +1,20 @@
 # '''
-# 目前版本 v1.3.0
+# 目前版本 v1.5.0
 # 撰寫成員:余若榛、鄭舜澤
 # '''
 
 # 若無安裝套件則選是否要自動安裝
-import asyncio
-import time
-
-
 try:
     import os
     import re
     import MySQLdb
+    import asyncio
+    import sys
+    import threading
+    import time
     import requests_html as req
     import speech_recognition as sr
+    from multiprocessing import Process
     from fake_useragent import UserAgent
     from urllib.request import urlopen
     from requests.exceptions import MissingSchema, InvalidURL
@@ -23,7 +24,7 @@ try:
 except ModuleNotFoundError:
     Promote = input("錯誤: 尚未安所需的套件! 是否自動安裝所需套件(Y/n)? : ")
     if Promote=="Y":
-        command = 'pip install -r requirements.txt'
+        command = 'pip3 install -r requirements.txt'
         os.system(command)
         basename = os.path.basename(__file__)
         os.system('python ' + basename)  # 執行此命令
@@ -56,7 +57,6 @@ def disconnection():
 
 def ASR():
     # obtain audio from the microphone
-    global text
     r = sr.Recognizer()
     # 語音讀取
     with sr.Microphone() as source:
@@ -66,58 +66,102 @@ def ASR():
         audio = r.listen(source)  # 檢測到靜音停止
 
     # recognize speech using Google Speech Recognition
+    dancing = '''
+            ⊂_ヽ
+            　 ＼＼ 
+            　   ＼(°ʖ°)
+            　　　 >　⌒ヽ
+            　　　 / 　 へ ＼
+            　　  /　　/　＼ \❤️
+            　　  ﾚ　ノ　　 ヽ_つ
+            　　  /　/
+            　   /　/|
+            　   (　(ヽ
+            　   |　|、＼
+            　   | 丿 ＼ ⌒)
+            　   | |　　) /
+                ノ )　　Lﾉ
+                (_／
+            '''
     try:
-        text = r.recognize_google(audio, language="zh-TW")
+        words = r.recognize_google(audio, language="zh-TW")
+        print(words, dancing)
+        text = input("請按下Enter鍵後進行搜尋!")
+        if text=="":
+            return words
+        else:
+            return ASR()
     except sr.UnknownValueError:
-        print("Google Speech Recognition could not understand audio")
-        text = input("請輸入欲查詢商品的關鍵字: ")
+        cat = '''
+        ＿＿
+　　　　　／＞　　フ ♡
+　　　　　| 　_　_ l ♡
+　 　　　／` ミ ωノ ♡
+　　 　 /　　　 　 |
+　　　 /　 ヽ　　 ﾉ
+　 　 │　　|　|　|
+　／￣|　　 |　|　|
+　| (￣ヽ＿_ヽ_)__)
+　＼二つ
+        '''
+        print('無法辨識喔，請重新再說一次!', cat)
+        return ASR()
     except sr.RequestError as e:
         print("No response from Google Speech Recognition service: {0}".format(e))
-    return text
+
+
+def loading(t):
+    for i in range(100 + 1):
+        time.sleep(t / 100)
+        sys.stdout.write(("\r查詢中... [ %d" % i + "% ] "))
+        sys.stdout.flush()
+
+
+t = threading.Thread(target=loading, args=(7,))
 
 
 # 爬蟲獲取商品名稱、價格、熱銷、縮網址
 def goods_info():
-    global content, text, list, results
-    # text = input("請輸入欲查詢商品的關鍵字: ")
-    try:
-        print("請輸入欲查詢商品的關鍵字(語音輸入):", end='')
-        url = 'https://online.carrefour.com.tw/zh/search?q=' + str(ASR())
-    except:
-        text = input("請輸入欲查詢商品的關鍵字: ")
-        url = 'https://online.carrefour.com.tw/zh/search?q=' + str(text)
-
-    # url = 'https://online.carrefour.com.tw/zh/search?q=' + str(text)
+    global content, text, list, pop_result, t1
     content = ""
     list = []
-    user_agent = UserAgent()
-    asession = req.AsyncHTMLSession()
+
+    print("請輸入欲查詢商品的關鍵字(語音輸入):", end='')
+    url = 'https://online.carrefour.com.tw/zh/search?q=' + str(ASR() if not None else print("error!"))
+    # print("搜尋中••••請稍後!")
+    # text = ASR()
     # str(stext=ASR()) if None else str(wtext)
     # headers = {"user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
     #                          "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.93 Safari/537.36"}
     # response = requests.get(url, headers=headers)
-    print("搜尋中，請稍後!")
+    user_agent = UserAgent()
+    asession = req.AsyncHTMLSession()
+
+    t = threading.Thread(target=loading, args=(7,))
+    t.start()
     t1 = time.time()
     response = requests.get(url, headers={'user-agent': user_agent.random})
-    soup = BeautifulSoup(response.text, "lxml")  # Parser選用lxml，較為快速(?!)
+    soup = BeautifulSoup(response.text, "lxml")  # Parser選用lxml，較為快速
     # 撈資料
     extract = soup.find_all('a', class_='gtm-product-alink', limit=3)
     ele = [s.get('href') for s in extract]
     try:
-        results = asession.run(pop_goods, urls=ele)
+        pop_result = asession.run(pop_goods, urls=ele)
     except:
         pass
-    for (s, item) in zip(extract, [0, 1, 2]):
+
+    for (s, items) in zip(extract, [0, 1, 2]):
         search = s.get('href')
         link = shorten("https://online.carrefour.com.tw" + search, '')
         name = s.get('data-name')
         price = s.get('data-baseprice') + '元'
         category = s.get('data-category')
         list.append(link)
-        pop = '與此商品之相關熱銷商品:\n' + str(results[item])
-
+        pop = '與此商品之相關熱銷商品:\n' + str(pop_result[items])
         content += f"\n{category}\n{name}\t{price}\n{link}\n{pop}\n"
-    print('搜尋時間', time.time() - t1, '秒')
+    last = time.time() - t1
+    print('\n搜尋時間', last, '秒')
+    t.join()
 
 
 async def pop_goods(url):
@@ -136,6 +180,7 @@ async def pop_goods(url):
         i = '第 ' + r1.attrs['data-position'] + ' 名 ' + r1.attrs['data-name'] + ' ' + r1.attrs['data-price'] + ' 元 '
         j = '第 ' + r2.attrs['data-position'] + ' 名 ' + r2.attrs['data-name'] + ' ' + r2.attrs['data-price'] + ' 元 '
         k = '第 ' + r3.attrs['data-position'] + ' 名 ' + r3.attrs['data-name'] + ' ' + r3.attrs['data-price'] + ' 元 '
+
     return i, j, k
 
 
@@ -165,6 +210,8 @@ def find_db():
             print('錯誤:資料庫未建立種類資訊!', "\n以下是商品有關連性的結果(若無結果，請檢查關鍵字詞是否輸入有誤!):\n" + content)
     elif len(list)==0:
         print("商品不存在!")
+    else:
+        pass
 
     # def pop_goods():
     #     next = input("是否查看前五名人氣熱銷商品(Y/n)? : ")
@@ -200,15 +247,15 @@ def shorten(long_url, alias):
 
 
 if __name__=="__main__":
+    with open('ascii_art.txt', 'r') as f:
+        for line in f:
+            print(line.rstrip())
     # noinspection PyBroadException
-    # try:
-    while 1==1:
-        connection()
-        goods_info()
-        find_db()
-
-# except Exception as e:
-#     disconnection()
-#     print(e)
-
-# os.system('python test.py')
+    try:
+        while 1==1:
+            connection()
+            goods_info()
+            find_db()
+    except Exception as e:
+        disconnection()
+        print(e)
