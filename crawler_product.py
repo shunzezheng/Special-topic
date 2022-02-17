@@ -256,9 +256,9 @@ def shorten(long_url, alias):
 
 
 if __name__=="__main__":
-    with open('ascii_art.txt', 'r') as f:
-        for line in f:
-            print(line.rstrip())
+#     with open('ascii_art.txt', 'r') as f:
+#         for line in f:
+#             print(line.rstrip())
     # noinspection PyBroadException
     try:
         while 1==1:
