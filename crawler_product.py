@@ -8,7 +8,7 @@
 #                                                |_|
 #
 #
-# 目前版本 v1.5.0
+# 目前版本 v1.6.0
 # 撰寫成員:余若榛、鄭舜澤
 
 
@@ -187,7 +187,7 @@ url_api = 'https://www.carrefour.com.tw/console/api/v1/catalogues/%E8%BC%95%E5%A
 
 
 def catalogs(url_api):
-    next = input("是否查看本月DM? : ")
+    next = input("是否查看本月DM(Y/n)? : ")
     if next=="Y":
         global urls
         session = HTMLSession()
