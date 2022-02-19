@@ -1,16 +1,16 @@
-#                                 _                                      _               _   
-#                                | |                                    | |             | |  
-#      ___  _ __  __ _ __      __| |  ___  _ __   _ __   _ __  ___    __| | _   _   ___ | |_ 
+#                                 _                                      _               _
+#                                | |                                    | |             | |
+#      ___  _ __  __ _ __      __| |  ___  _ __   _ __   _ __  ___    __| | _   _   ___ | |_
 #     / __|| '__|/ _` |\ \ /\ / /| | / _ \| '__| | '_ \ | '__|/ _ \  / _` || | | | / __|| __|
-#    | (__ | |  | (_| | \ V  V / | ||  __/| |    | |_) || |  | (_) || (_| || |_| || (__ | |_ 
+#    | (__ | |  | (_| | \ V  V / | ||  __/| |    | |_) || |  | (_) || (_| || |_| || (__ | |_
 #     \___||_|   \__,_|  \_/\_/  |_| \___||_|    | .__/ |_|   \___/  \__,_| \__,_| \___| \__|
-#                                                | |                                         
-#                                                |_|                                         
-
-# '''
+#                                                | |
+#                                                |_|
+#
+#
 # 目前版本 v1.5.0
 # 撰寫成員:余若榛、鄭舜澤
-# '''
+
 
 # 若無安裝套件則選是否要自動安裝
 try:
@@ -36,19 +36,16 @@ except ModuleNotFoundError:
         command = 'pip3 install -r requirements.txt'
         os.system(command)
         basename = os.path.basename(__file__)
-        os.system('python ' + basename)  # 執行此命令
+        os.system('python ' + basename)  # automatic run script on root
         quit()
     elif Promote=="n":
         exit()
 
-# 建立db連線到本地端資訊
-db = MySQLdb.connect(host="localhost",
-    user="root",
-    passwd="password",
-    db="carrefour")
+# local connection info
+db = MySQLdb.connect(host="localhost", user="root", passwd="password", db="carrefour")
 
 
-# db連線
+# connection to database and execute query
 def connection():
     # noinspection PyBroadException
     try:
@@ -57,24 +54,23 @@ def connection():
         global results
         results = cursor.fetchall()
     except:
-        print("錯誤:無法連上db!")
+        print("error:Disable connections!")
 
 
+# connection to database
 def disconnection():
     db.close()
 
 
+# recognize speech using Google Speech Recognition
 def ASR():
     # obtain audio from the microphone
     r = sr.Recognizer()
-    # 語音讀取
+    # read the audio
     with sr.Microphone() as source:
         # create the ambient noise energy level
-
-        r.adjust_for_ambient_noise(source, duration=0)
-        audio = r.listen(source)  # 檢測到靜音停止
-
-    # recognize speech using Google Speech Recognition
+        r.adjust_for_ambient_noise(source, duration=1)  # duration=0 not restrain ambient noise
+        audio = r.listen(source)  # recognize finished stop
     dancing = '''
             ⊂_ヽ
             　 ＼＼ 
@@ -95,8 +91,8 @@ def ASR():
     try:
         words = r.recognize_google(audio, language="zh-TW")
         print(words, dancing)
-        text = input("請按下Enter鍵後進行搜尋!")
-        if text=="":
+        blank = input("請按下Enter鍵後進行搜尋!")
+        if blank=="":
             return words
         else:
             return ASR()
@@ -114,46 +110,39 @@ def ASR():
 　＼二つ
         '''
         print('無法辨識喔，請重新再說一次!', cat)
+        print('聆聽中......')
         return ASR()
-    except sr.RequestError as e:
-        print("No response from Google Speech Recognition service: {0}".format(e))
+    except sr.RequestError as err:
+        print("No response from Google Speech Recognition service: {0}".format(err))
 
 
-def loading(t):
-    for i in range(100 + 1):
-        time.sleep(t / 100)
-        sys.stdout.write(("\r查詢中... [ %d" % i + "% ] "))
+def loading(durtion):
+    for num in range(100 + 1):
+        time.sleep(durtion / 100)
+        sys.stdout.write(("\r查詢中... [ %d" % num + "% ] "))
         sys.stdout.flush()
 
+    # inherit the AsyncHTMLSession run method
 
-t = threading.Thread(target=loading, args=(7,))
 
-
-# 爬蟲獲取商品名稱、價格、熱銷、縮網址
+# crawler the product info (name、link、price、pop)
 def goods_info():
     global content, text, list, pop_result, t1
     content = ""
     list = []
-
     print("請輸入欲查詢商品的關鍵字(語音輸入):", end='')
     url = 'https://online.carrefour.com.tw/zh/search?q=' + str(ASR() if not None else print("error!"))
-    # print("搜尋中••••請稍後!")
-    # text = ASR()
-    # str(stext=ASR()) if None else str(wtext)
-    # headers = {"user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-    #                          "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.93 Safari/537.36"}
-    # response = requests.get(url, headers=headers)
     user_agent = UserAgent()
     asession = req.AsyncHTMLSession()
-
     t = threading.Thread(target=loading, args=(7,))
     t.start()
     t1 = time.time()
     response = requests.get(url, headers={'user-agent': user_agent.random})
     soup = BeautifulSoup(response.text, "lxml")  # Parser選用lxml，較為快速
-    # 撈資料
+    # extract the html tag <a> sections
     extract = soup.find_all('a', class_='gtm-product-alink', limit=3)
     ele = [s.get('href') for s in extract]
+
     try:
         pop_result = asession.run(pop_goods, urls=ele)
     except:
@@ -178,28 +167,43 @@ async def pop_goods(url):
     asession = req.AsyncHTMLSession()
     pre = 'https://online.carrefour.com.tw'
     r = await asession.get(pre + url)
-    await r.html.arender()
+    try:
+        await r.html.arender()
+    except:
+        await r.html.arender(timeout=20)
+    e3 = r.html.find("#cq_recomm_slot-89984c043f9f6c5dfe5899d4eb > div > div > div > div:nth-child(9) > div.photo > a")
+    e2 = r.html.find("#cq_recomm_slot-89984c043f9f6c5dfe5899d4eb > div > div > div > div:nth-child(6) > div.photo > a")
     e1 = r.html.find("#cq_recomm_slot-89984c043f9f6c5dfe5899d4eb > div > div > div > div:nth-child(3) > div.photo > a")
-
-    e2 = r.html.find("#cq_recomm_slot-89984c043f9f6c5dfe5899d4eb > div > div > div > div:nth-child(6) > "
-                     "div.photo > a")
-    e3 = r.html.find("#cq_recomm_slot-89984c043f9f6c5dfe5899d4eb > div > div > div > div:nth-child(9) > "
-                     "div.photo > a")
     for r1, r2, r3 in zip(e1, e2, e3):
         i = '第 ' + r1.attrs['data-position'] + ' 名 ' + r1.attrs['data-name'] + ' ' + r1.attrs['data-price'] + ' 元 '
+        await asyncio.sleep(1)
         j = '第 ' + r2.attrs['data-position'] + ' 名 ' + r2.attrs['data-name'] + ' ' + r2.attrs['data-price'] + ' 元 '
+        await asyncio.sleep(1)
         k = '第 ' + r3.attrs['data-position'] + ' 名 ' + r3.attrs['data-name'] + ' ' + r3.attrs['data-price'] + ' 元 '
-
     return i, j, k
+
+
+url_api = 'https://www.carrefour.com.tw/console/api/v1/catalogues/%E8%BC%95%E5%A5%A2%E7%BE%8E%E5%A6%9D'
+
+
+def catalogs(url_api):
+    next = input("是否查看本月DM? : ")
+    if next=="Y":
+        global urls
+        session = HTMLSession()
+        r = session.get(url_api, headers={'accept': 'application/json'})
+        r.html.render()
+        responseData = r.json()
+        urls = responseData['data']['images']
+        print(urls)
+    elif next=='n':
+        goods_info()
 
 
 # 爬取線上購物網的商品與db產生相關聯
 def crawler(n_area):
     category = [record[0] for record in results]
     area = [record[3] for record in results]
-    # lowprice = [record[1] for record in results]
-    # higtprice = [record[2] for record in results]
-    remarks = [record[7] for record in results]
     l_area = []
     for category, area in dict.fromkeys(zip(category, area)):
         if re.match(text, category):
@@ -222,32 +226,8 @@ def find_db():
     else:
         pass
 
-    # def pop_goods():
-    #     next = input("是否查看前五名人氣熱銷商品(Y/n)? : ")
-    rcontent = ''
-    if next=="Y":
-        # response_hot = requests.get(list[0])
-        # soup_hot = BeautifulSoup(response_hot.text, "lxml")
-        # k = soup_hot.find_all('a', class_='gtm-product-alink-hotsale')
-        # for t in k:
-        #     rank = t.get('data-position')
-        #     rname = t.get('data-name')
-        #     rcontent += f"\n{rank}\n{rname}\n"
-        # print(rcontent)
-        print('OK')
-        # pop = [list[2] for test.find in a]
-        # print(pop)
-        # test.find(list[0])
-        # test.find(list[1])
-        # test.find(list[2])
 
-
-    # print("以下是 {} 前五名人氣熱銷商品: ".format(text))
-
-
-    # 縮網址
-
-
+# 縮網址
 def shorten(long_url, alias):
     URL = "http://tinyurl.com/create.php?source=indexpage&url=" + long_url + "&submit=Make+TinyURL%21&alias=" + alias
     response = urlopen(URL)
@@ -256,15 +236,16 @@ def shorten(long_url, alias):
 
 
 if __name__=="__main__":
-#     with open('ascii_art.txt', 'r') as f:
-#         for line in f:
-#             print(line.rstrip())
+    with open('ascii_art.txt', 'r', encoding='UTF-8') as f:
+        for line in f:
+            print(line.rstrip())
     # noinspection PyBroadException
     try:
         while 1==1:
             connection()
             goods_info()
             find_db()
+            catalogs(url_api)
     except Exception as e:
         disconnection()
         print(e)
