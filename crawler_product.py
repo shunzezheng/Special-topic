@@ -208,9 +208,10 @@ def goods_info():
                 category = s.get('data-category')
                 listx.append(link)
                 pop = '與此商品之相關熱銷商品:\n' + str(pop_result[items])
-                content += f"\n{category}\n{name}\t{price}\n{link}\n{pop}\n"
+                content += f"\n{category}\n{name}\t{price}\n{link}\n{pop}"
             last = time.time() - t1
             print('\n搜尋時間', last, '秒')
+            print("以下是商品熱門結果:\n" + content)
             save_data_to_local()
     else:
         print("商品不存在!")
@@ -271,12 +272,10 @@ def crawler(n_area):
 # 查找線上購物商品的字詞
 def find_db():
     if len(listx) > 0:
-        # noinspection PyBroadException
-        try:
+        if len(crawler(print())) > 0:
             print(words + '可能在: ' + crawler(print()) + ' 走道區域')
-            print("以下是商品熱門結果:\n" + content)
-        except:
-            print('錯誤:資料庫未建立種類資訊!', "\n以下是商品有關連性的結果(若無結果，請檢查關鍵字詞是否輸入有誤!):\n" + content)
+        else:
+            print('錯誤:資料庫未建立種類資訊，無法得知商品位在哪些走道區域!')
 
 
 # 縮網址
